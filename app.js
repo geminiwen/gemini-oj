@@ -1,61 +1,77 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
+var grunner = require("./lib/grunner");
+var fs = require("fs");
 
-var routes = require('./routes/index');
-var users = require('./routes/users');
+var amqp = require('amqp');
+var config = require("./lib/config");
+var compiler = require("./lib/compiler");
 
-var app = express();
+var connection = amqp.createConnection(config, {defaultExchangeName: "amq.direct"});
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+var grunnerQueueOptions = {
+    durable: true,
+    autoDelete: false
+};
 
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(require('less-middleware')(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'public')));
+var queueWork = function queueWork (message, headers, deliveryInfo, messageObject) {
+    var sourceFile = message.sourceFile;      //source file
+    var execFile = message.execFile;    //compiled file
+    var language = message.language;
+    var inputFile = message.inputFile;
+    var outputFile = message.outputFile;
+    var sampleFile = message.sampleFile || outputFile;
+    var timeLimit = message.timeLimit || 1000;
+    var memoryLimit = message.memoryLimit || 64 * 1024;
+    var uid = message.uid || process.getuid();
 
-app.use('/', routes);
-app.use('/users', users);
+    function compileComplete(errcode) {
+        if(errcode == 0) {
+            var fin = fs.openSync(inputFile, "r");
+            var fout = fs.openSync(outputFile, "w+");
+            var fsample = fs.openSync(sampleFile, "r");
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
+            //build process object
+            var process = {
+                path: execFile,
+                fin: fin,
+                fout: fout,
+                timeLimit: timeLimit,
+                memoryLimit: memoryLimit,
+                uid: uid
+            };
 
-// error handlers
 
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
+            var retCode = grunner.run(process);
+
+            if (retCode != 0) {
+                resolveResult(retCode);
+            } else {
+                retCode = grunner.check(fsample, fout);
+                resolveResult(retCode)
+            }
+        } else {
+            resolveResult(1);
+        }
+    }
+
+    function resolveResult(result) {
+        console.log("judge result:" + result);
+    }
+
+
+    switch (language.toLocaleLowerCase()) {
+        case "c": {
+            compiler.c(sourceFile, execFile, compileComplete);
+            break;
+        }
+    }
+
+};
+
+
+var onConnected = function onConnected() {
+    connection.queue("grunner", grunnerQueueOptions, function(q) {
+        q.subscribe(queueWork);
     });
-  });
-}
+};
 
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
-});
-
-
-module.exports = app;
+connection.on("ready", onConnected);
