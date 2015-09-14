@@ -49,7 +49,7 @@ var queueWork = function queueWork (message, headers, deliveryInfo, messageObjec
                 resolveResult(retCode)
             }
         } else {
-            resolveResult(1);
+            resolveResult(7); //compile error
         }
     }
 
