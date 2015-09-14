@@ -12,7 +12,7 @@ var grunnerQueueOptions = {
     autoDelete: false
 };
 
-var queueWork = function queueWork (message, headers, deliveryInfo, messageObject) {
+var queueWork = function queueWork (message) {
     var sourceFile = message.sourceFile;      //source file
     var execFile = message.execFile;    //compiled file
     var language = message.language;
