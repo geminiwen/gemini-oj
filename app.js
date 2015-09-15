@@ -1,5 +1,6 @@
 var grunner = require("./lib/grunner");
 var fs = require("fs");
+var resolve = require("./lib/result").resolve;
 
 var amqp = require('amqp');
 var config = require("./lib/config");
@@ -40,23 +41,19 @@ var queueWork = function queueWork (message, headers, deliveryInfo, messageObjec
             };
 
 
-            var retCode = grunner.run(process);
+            var result = grunner.run(process);
+            var retCode = result['judgeResult'];
 
-            if (retCode != 0) {
-                resolveResult(retCode);
-            } else {
+            if (retCode == 0) {
                 retCode = grunner.check(fsample, fout);
-                resolveResult(retCode)
+                result['judgeResult'] = retCode;
             }
+
         } else {
-            resolveResult(7); //compile error
+            result = {'judgeResult' : 7};
         }
+        resolve(message, result);
     }
-
-    function resolveResult(result) {
-        console.log("judge result:" + result);
-    }
-
 
     switch (language.toLocaleLowerCase()) {
         case "c": {

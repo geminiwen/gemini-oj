@@ -1,9 +1,9 @@
 {
   "name": "gemini-oj",
   "version": "0.0.1",
-  "scripts": {
-  },
+  "scripts": {},
   "dependencies": {
-    "amqp": "^0.2.4"
+    "amqp": "^0.2.4",
+    "mysql": "^2.9.0"
   }
 }
