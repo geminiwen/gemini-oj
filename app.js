@@ -56,8 +56,13 @@ var queueWork = function queueWork (message, headers, deliveryInfo, messageObjec
     }
 
     switch (language.toLocaleLowerCase()) {
+        case "cpp":
         case "c": {
             compiler.c(sourceFile, execFile, compileComplete);
+            break;
+        }
+        default : {
+            resolve(message, {'judgeResult' : 7});
             break;
         }
     }
