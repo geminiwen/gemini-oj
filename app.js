@@ -41,24 +41,40 @@ var queueWork = function queueWork (message, headers, deliveryInfo, messageObjec
             };
 
 
-            var result = grunner.run(process);
-            var retCode = result['judgeResult'];
-
-            if (retCode == 0) {
-                retCode = grunner.check(fsample, fout);
-                result['judgeResult'] = retCode;
-            }
+            console.log(process);
+            grunner.run(process, function (result) {
+                console.log("judge success");
+                console.dir(result);
+                var retCode = result['judgeResult'];
+                if (retCode == 0) {
+                    retCode = grunner.check(fsample, fout);
+                    result['judgeResult'] = retCode;
+                }
+                resolve(message, result);
+            });
 
         } else {
             result = {'judgeResult' : 7};
+            resolve(message, result);
         }
-        resolve(message, result);
-    }
 
-    switch (language.toLocaleLowerCase()) {
-        case "cpp":
+    }
+    var language = language.toLocaleLowerCase();
+    switch (language) {
         case "c": {
             compiler.c(sourceFile, execFile, compileComplete);
+            break;
+        }
+        case "cpp": {
+            compiler.cpp(sourceFile, execFile, compileComplete);
+            break;
+        }
+        case "javascript": {
+            compiler.js(sourceFile, execFile, compileComplete);
+            break;
+        }
+        case "java": {
+            compiler.java(sourceFile, execFile, compileComplete);
             break;
         }
         default : {

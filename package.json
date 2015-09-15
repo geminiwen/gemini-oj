@@ -4,6 +4,7 @@
   "scripts": {},
   "dependencies": {
     "amqp": "^0.2.4",
-    "mysql": "^2.9.0"
+    "mysql": "^2.9.0",
+    "rimraf": "^2.4.3"
   }
 }
