@@ -1,8 +1,9 @@
 var grunner = require("./lib/grunner");
 var fs = require("fs");
+var resolve = require("./lib/result").resolve;
 
 var amqp = require('amqp');
-var config = require("./lib/config");
+var config = require("./lib/config").mq;
 var compiler = require("./lib/compiler");
 
 var connection = amqp.createConnection(config, {defaultExchangeName: "amq.direct"});
@@ -22,6 +23,7 @@ var queueWork = function queueWork (message, headers, deliveryInfo, messageObjec
     var timeLimit = message.timeLimit || 1000;
     var memoryLimit = message.memoryLimit || 64 * 1024;
     var uid = message.uid || process.getuid();
+    var args = message.args;
 
     function compileComplete(errcode) {
         if(errcode == 0) {
@@ -36,31 +38,45 @@ var queueWork = function queueWork (message, headers, deliveryInfo, messageObjec
                 fout: fout,
                 timeLimit: timeLimit,
                 memoryLimit: memoryLimit,
-                uid: uid
+                uid: uid,
+                args: args || []
             };
+            grunner.run(process, function (result) {
+                console.dir(result);
+                var retCode = result['judgeResult'];
+                if (retCode == 0) {
+                    retCode = grunner.check(fsample, fout);
+                    result['judgeResult'] = retCode;
+                }
+                resolve(message, result);
+            });
 
-
-            var retCode = grunner.run(process);
-
-            if (retCode != 0) {
-                resolveResult(retCode);
-            } else {
-                retCode = grunner.check(fsample, fout);
-                resolveResult(retCode)
-            }
         } else {
-            resolveResult(7); //compile error
+            result = {'judgeResult' : 7};
+            resolve(message, result);
         }
+
     }
-
-    function resolveResult(result) {
-        console.log("judge result:" + result);
-    }
-
-
-    switch (language.toLocaleLowerCase()) {
+    var language = language.toLocaleLowerCase();
+    switch (language) {
         case "c": {
             compiler.c(sourceFile, execFile, compileComplete);
+            break;
+        }
+        case "cpp": {
+            compiler.cpp(sourceFile, execFile, compileComplete);
+            break;
+        }
+        case "javascript": {
+            compiler.js(sourceFile, execFile, compileComplete);
+            break;
+        }
+        case "java": {
+            compiler.java(sourceFile, execFile, compileComplete);
+            break;
+        }
+        default : {
+            resolve(message, {'judgeResult' : 7});
             break;
         }
     }
