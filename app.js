@@ -1,3 +1,4 @@
+var daemon = require('daemon');
 var grunner = require("./lib/grunner");
 var fs = require("fs");
 var resolve = require("./lib/result").resolve;
@@ -91,3 +92,5 @@ var onConnected = function onConnected() {
 };
 
 connection.on("ready", onConnected);
+
+daemon();
