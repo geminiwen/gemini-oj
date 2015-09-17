@@ -92,5 +92,8 @@ var onConnected = function onConnected() {
 };
 
 connection.on("ready", onConnected);
+connection.on("error", function (e) {
+    console.log(e);
+});
 
 daemon();
