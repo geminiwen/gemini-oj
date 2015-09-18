@@ -1,7 +1,9 @@
 {
   "name": "gemini-oj",
   "version": "0.0.1",
-  "scripts": {},
+  "scripts": {
+    "start": "node app.js"
+  },
   "dependencies": {
     "amqp": "^0.2.4",
     "daemon": "^1.1.0",
