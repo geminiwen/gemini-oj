@@ -96,4 +96,4 @@ connection.on("error", function (e) {
     console.log(e);
 });
 
-daemon();
+//daemon();
